@@ -26,8 +26,6 @@ async def set_bot_commands(bot: Bot):
 
 
 async def main() -> None:
-    # i18n = I18n(path='locales', default_locale='uz', domain='messages')
-    # dp.update.outer_middleware(FSMI18nMiddleware(i18n))
     bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     await set_bot_commands(bot)
     await dp.start_polling(bot)

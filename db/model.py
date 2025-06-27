@@ -15,14 +15,13 @@ class StatusEnum(enum.Enum):
 class User(CreatedModel):
     user_id: Mapped[int] = mapped_column(BIGINT, unique=True)
     username: Mapped[str] = mapped_column(String, nullable=True)
-    order = relationship('Order', back_populates='user')
+    order = relationship('Order', back_populates='user',lazy='selectin')
 
 class Category(CreatedModel):
     __tablename__ = 'categories'
 
     name: Mapped[str] = mapped_column(String)
-    product = relationship('Product', back_populates='category')
-    service = relationship('Service', back_populates='category')
+    service = relationship('Service', back_populates='category',lazy='selectin')
 
     def __repr__(self):
         return f"{self.name}"
@@ -33,25 +32,22 @@ class Product(CreatedModel):
     price: Mapped[float] = mapped_column(Float)
     image: Mapped[str] = mapped_column(Text)
     count: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
-    category_id: Mapped[int] = mapped_column(ForeignKey('categories.id', ondelete='CASCADE'))
     service_id: Mapped[int] = mapped_column(ForeignKey('services.id', ondelete='CASCADE'))
-    category = relationship('Category', back_populates='product')
-    service = relationship('Service', back_populates='product')
-    order = relationship('Order', back_populates='product')
+    delivery_price: Mapped[float] = mapped_column(Float,nullable=True)
+    service = relationship('Service', back_populates='product',lazy='selectin')
+    order = relationship('Order', back_populates='product',lazy='selectin')
 
     def __repr__(self):
-        return f"{self.name},{self.price},{self.image},{self.category_id},{self.count}"
+        return f"{self.name},{self.price},{self.image},{self.service_id},{self.count}"
 
 
 class Order(CreatedModel):
-    product_name: Mapped[str] = mapped_column(String)
-    product_price: Mapped[int] = mapped_column(Float)
-    delivery: Mapped[int] = mapped_column(Integer, default=20000)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.user_id', ondelete='CASCADE'))
-    product_id: Mapped[int] = mapped_column(ForeignKey('products.id', ondelete='CASCADE'))
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.user_id', ondelete='SET NULL'), nullable=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey('products.id', ondelete='SET NULL'), nullable=True)
     quantity: Mapped[int] = mapped_column(Integer, default=1)
-    product = relationship('Product', back_populates='order')
-    user = relationship('User', back_populates='order')
+    total_price: Mapped[float] = mapped_column(Float,nullable=True)
+    product = relationship('Product', back_populates='order',lazy='selectin')
+    user = relationship('User', back_populates='order',lazy='selectin')
     status: Mapped[StatusEnum] = mapped_column(
         Enum(StatusEnum, name="status_enum", create_constraint=True),
         default=StatusEnum.ACCEPTED,
@@ -75,8 +71,8 @@ class Order(CreatedModel):
 class Service(CreatedModel):
     name: Mapped[str] = mapped_column(String())
     category_id = mapped_column(ForeignKey('categories.id', ondelete='CASCADE'))
-    category = relationship('Category', back_populates='service')
-    product = relationship('Product', back_populates='service')
+    category = relationship('Category', back_populates='service',lazy='selectin')
+    product = relationship('Product', back_populates='service',lazy='selectin')
 
     def __repr__(self):
         return f"{self.name}"

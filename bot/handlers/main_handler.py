@@ -43,3 +43,6 @@ async def card_handler(message: Message):
 @main.message(F.text == '👤 Admin')
 async def admin_handler(message: Message):
     await message.answer(text=f'https://t.me/Gorinhas')
+
+
+
