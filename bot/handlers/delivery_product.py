@@ -3,6 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, InlineKeyboardButton, CallbackQuery, KeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from bot.buttons.inline import build_inline_buttons
+from bot.buttons.reply import reply_button_builder
 from db.model import Address, Order, Service, Product, StatusEnum
 
 deliver = Router()
@@ -31,7 +32,11 @@ async def product_handler(callback: CallbackQuery, state: FSMContext):
     product_id = int(callback.data.split('_')[1])
     product: Product = await Product.get(Product.id, product_id)
     await state.update_data(product=product)
-    text = f'Name:{product.name}\n,Price:{product.price}\n,Delivery price:{product.delivery_price}\n'
+    text = (
+            f"🛍 <b>Name:</b> {product.name}\n"
+            f"💵 <b>Price:</b> {product.price}\n"
+            f"🚚 <b>Delivery:</b> {product.delivery_price}\n"
+        )
     button = [InlineKeyboardButton(text='✅ Ordered', callback_data='ordered')]
     markup = await build_inline_buttons(button, [1])
     await callback.message.answer(text=text, reply_markup=markup)
@@ -49,23 +54,27 @@ async def product_handler(callback: CallbackQuery, state: FSMContext):
         'user_id': user_id,
         'total_price': product.price + product.delivery_price
     }
-    await Order.create(**item)
+    order = await Order.create(**item)
+    await state.clear()
+    await state.update_data(order=order)
     rkb = ReplyKeyboardBuilder()
-    rkb.add(KeyboardButton(text='🛒 Check out', request_location=True))
-    rkb.adjust(1)
+    rkb.add(KeyboardButton(text='🛒 Check out', request_location=True),KeyboardButton(text='◀️ Main Back'))
+    rkb.adjust(2)
     rkb = rkb.as_markup(resize_keyboard=True)
     await callback.message.answer('✅ Added to cart', reply_markup=rkb)
 
 
 @deliver.message(F.location)
-async def location_handler(message: Message):
-    user_id = message.chat.id
-    await Order.update(Order.user_id,user_id,status=StatusEnum.DELIVERY)
+async def location_handler(message: Message,state:FSMContext):
+    data = await state.get_data()
+    order:Order = data.get('order')
+    await Order.update(Order.id,order.id,status=StatusEnum.DELIVERY)
     location = message.location
     lock = {
         'latitude': location.latitude,
         'longitude': location.longitude,
-        'user_id': user_id
+        'order_id': order.id
     }
+    markup = reply_button_builder(['◀️ Main Back'])
     await Address.create(**lock)
     await message.answer('✅ Your location find order is go')

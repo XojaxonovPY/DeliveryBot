@@ -1,9 +1,11 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.types import Message, InlineKeyboardButton
+
 from bot.buttons.inline import build_inline_buttons
 from bot.buttons.reply import reply_button_builder
-from bot.functions import get_category, save_user, get_cards
+from bot.functions import get_category, save_user
+from db.model import Order, StatusEnum
 
 main = Router()
 
@@ -32,17 +34,20 @@ async def main_handler(message: Message):
 @main.message(F.text == '🧺 Basket')
 async def card_handler(message: Message):
     user_id = message.chat.id
-    name, price, quantity, address, status = await get_cards(user_id)
-    lat = float(''.join([str(i.latitude) for i in address]))
-    long = float(''.join([str(i.latitude) for i in address]))
-    await message.answer_location(latitude=lat, longitude=long)
-    await message.answer(
-        text=f"Name:{name}\nTotal_count:{quantity}ta\nTotal_price:{price}so'm\nOrder status:{status}\n")
+    orders: list[Order] = await Order.gets(Order.user_id, user_id)
+    for order in orders:
+        text = (
+            f"🛍 <b>Name:</b> {order.product.name}\n"
+            f"💵 <b>Price:</b> {order.product.price}\n"
+            f"🚚 <b>Delivery:</b> {order.product.delivery_price}\n"
+            f"💵 <b>Total Price:</b> {order.total_price}\n"
+        )
+        if order.status == StatusEnum.DELIVERY:
+            address = order.address[0]
+            await message.answer_location(latitude=address.latitude, longitude=address.longitude)
+        await message.answer(text=text)
 
 
 @main.message(F.text == '👤 Admin')
 async def admin_handler(message: Message):
     await message.answer(text=f'https://t.me/Gorinhas')
-
-
-

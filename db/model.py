@@ -48,6 +48,7 @@ class Order(CreatedModel):
     total_price: Mapped[float] = mapped_column(Float,nullable=True)
     product = relationship('Product', back_populates='order',lazy='selectin')
     user = relationship('User', back_populates='order',lazy='selectin')
+    address=relationship('Address',back_populates='order',lazy='selectin')
     status: Mapped[StatusEnum] = mapped_column(
         Enum(StatusEnum, name="status_enum", create_constraint=True),
         default=StatusEnum.ACCEPTED,
@@ -81,7 +82,8 @@ class Service(CreatedModel):
 class Address(CreatedModel):
     latitude: Mapped[float] = mapped_column(Float)
     longitude: Mapped[float] = mapped_column(Float)
-    user_id: Mapped[int] = mapped_column(ForeignKey('users.user_id', ondelete='CASCADE'))
+    order_id: Mapped[int] = mapped_column(ForeignKey('orders.id', ondelete='CASCADE'))
+    order = relationship('Order', back_populates='address',lazy='selectin')
 
     def __repr__(self):
         return f'{self.latitude},{self.longitude}'
